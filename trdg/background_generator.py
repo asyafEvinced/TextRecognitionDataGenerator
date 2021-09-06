@@ -61,10 +61,16 @@ def image(height, width, image_dir):
     """
     images = os.listdir(image_dir)
 
-    if len(images) > 0:
+    # filter images
+    filtered_images = []
+    for img_filename in images:
+        if img_filename.endswith(('.png', '.jpg', 'jpeg')) and '_box' not in img_filename:
+            filtered_images.append(img_filename)
+
+    if len(filtered_images) > 0:
         pic = Image.open(
             os.path.join(
-                image_dir, images[rnd.randint(0, len(images) - 1)]
+                image_dir, filtered_images[rnd.randint(0, len(filtered_images) - 1)]
             )
         )
 
