@@ -4,7 +4,7 @@ import random as rnd
 from PIL import Image, ImageFilter
 
 from trdg import computer_text_generator, background_generator, distorsion_generator
-from trdg.utils import mask_to_bboxes
+from trdg.utils import mask_to_bboxes, draw_bounding_boxes
 
 try:
     from trdg import handwritten_text_generator
@@ -227,6 +227,7 @@ class FakeTextDataGenerator(object):
         image_name = "{}.{}".format(name, extension)
         mask_name = "{}_mask.png".format(name)
         box_name = "{}_boxes.txt".format(name)
+        image_box_name = "{}_box.png".format(name)
         tess_box_name = "{}.box".format(name)
 
 
@@ -237,6 +238,8 @@ class FakeTextDataGenerator(object):
                 final_mask.convert("RGB").save(os.path.join(out_dir, mask_name))
             if output_bboxes == 1:
                 bboxes = mask_to_bboxes(final_mask)
+                draw_bounding_boxes(final_image, bboxes)
+                final_image.convert("RGB").save(os.path.join(out_dir, image_box_name))
                 with open(os.path.join(out_dir, box_name), "w") as f:
                     for bbox in bboxes:
                         f.write(" ".join([str(v) for v in bbox]) + "\n")

@@ -4,7 +4,7 @@ Utility functions
 
 import os
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 def load_dict(lang):
     """Read the dictionnary file and returns all words in it.
