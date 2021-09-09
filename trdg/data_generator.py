@@ -151,6 +151,7 @@ class FakeTextDataGenerator(object):
         #############################
         # Generate background image #
         #############################
+        background_img_path = None
         if background_type == 0:
             background_img = background_generator.gaussian_noise(
                 background_height, background_width
@@ -167,6 +168,8 @@ class FakeTextDataGenerator(object):
             background_img = background_generator.image(
                 background_height, background_width, image_dir
             )
+            background_img_path = background_img.filename
+
         background_mask = Image.new(
             "RGB", (background_width, background_height), (0, 0, 0)
         )
@@ -177,7 +180,7 @@ class FakeTextDataGenerator(object):
 
         new_text_width, _ = resized_img.size
 
-        if alignment == 0 or width == -1:
+        if alignment == 0:  # or width == -1:
             background_img.paste(resized_img, (margin_left, margin_top), resized_img)
             background_mask.paste(resized_mask, (margin_left, margin_top))
         elif alignment == 1:
@@ -224,9 +227,15 @@ class FakeTextDataGenerator(object):
             print("{} is not a valid name format. Using default.".format(name_format))
             name = "{}_{}".format(text, str(index))
 
+        if background_img_path is not None:
+            basename = os.path.split(background_img_path)[-1]
+            basename_no_ext = os.path.splitext(basename)[0]
+            name = f"{name}_{basename_no_ext}"
+            print(name)
+
         image_name = "{}.{}".format(name, extension)
         mask_name = "{}_mask.png".format(name)
-        box_name = "{}_boxes.txt".format(name)
+        box_name = "{}_boxes.csv".format(name)
         image_box_name = "{}_box.png".format(name)
         tess_box_name = "{}.box".format(name)
 
@@ -242,7 +251,8 @@ class FakeTextDataGenerator(object):
                 final_image.convert("RGB").save(os.path.join(out_dir, image_box_name))
                 with open(os.path.join(out_dir, box_name), "w") as f:
                     for bbox in bboxes:
-                        f.write(" ".join([str(v) for v in bbox]) + "\n")
+                        bbox_text = ",".join([str(v) for v in bbox]) + "\n"
+                        f.write(f"{bbox_text}")
             if output_bboxes == 2:
                 bboxes = mask_to_bboxes(final_mask, tess=True)
                 with open(os.path.join(out_dir, tess_box_name), "w") as f:
