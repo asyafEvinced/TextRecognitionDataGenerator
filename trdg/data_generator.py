@@ -1,10 +1,11 @@
+import csv
 import os
 import random as rnd
 
 from PIL import Image, ImageFilter
 
 from trdg import computer_text_generator, background_generator, distorsion_generator
-from trdg.utils import mask_to_bboxes, draw_bounding_boxes
+from trdg.utils import mask_to_bboxes, draw_bounding_boxes, load_bounding_boxes
 
 try:
     from trdg import handwritten_text_generator
@@ -164,12 +165,16 @@ class FakeTextDataGenerator(object):
             background_img = background_generator.quasicrystal(
                 background_height, background_width
             )
-        else:
+        elif background_type == 3:
             background_img = background_generator.image(
-                background_height, background_width, image_dir
+                background_height, background_width, image_dir,
             )
-            background_img_path = background_img.filename
-
+            if hasattr(background_img, 'filename'):
+                background_img_path = background_img.filename
+        else:
+            background_img = background_generator.any_color(
+                background_height, background_width
+            )
         background_mask = Image.new(
             "RGB", (background_width, background_height), (0, 0, 0)
         )
@@ -227,18 +232,19 @@ class FakeTextDataGenerator(object):
             print("{} is not a valid name format. Using default.".format(name_format))
             name = "{}_{}".format(text, str(index))
 
+        loaded_bboxes = []
+        invoke_ind = 0
         if background_img_path is not None:
-            basename = os.path.split(background_img_path)[-1]
-            basename_no_ext = os.path.splitext(basename)[0]
-            name = f"{name}_{basename_no_ext}"
-            print(name)
+            name = FakeTextDataGenerator._generate_name_from_background_img(background_img_path, name)
+            loaded_bboxes = load_bounding_boxes(background_img_path)
+            if len(loaded_bboxes) > 0:
+                invoke_ind = loaded_bboxes[0][0] + 1
 
         image_name = "{}.{}".format(name, extension)
         mask_name = "{}_mask.png".format(name)
         box_name = "{}_boxes.csv".format(name)
         image_box_name = "{}_box.png".format(name)
         tess_box_name = "{}.box".format(name)
-
 
         # Save the image
         if out_dir is not None:
@@ -247,12 +253,10 @@ class FakeTextDataGenerator(object):
                 final_mask.convert("RGB").save(os.path.join(out_dir, mask_name))
             if output_bboxes == 1:
                 bboxes = mask_to_bboxes(final_mask)
+                bboxes.extend(loaded_bboxes)
                 draw_bounding_boxes(final_image, bboxes)
                 final_image.convert("RGB").save(os.path.join(out_dir, image_box_name))
-                with open(os.path.join(out_dir, box_name), "w") as f:
-                    for bbox in bboxes:
-                        bbox_text = ",".join([str(v) for v in bbox]) + "\n"
-                        f.write(f"{bbox_text}")
+                FakeTextDataGenerator.write_boxes(out_dir, box_name, bboxes, invoke_ind)
             if output_bboxes == 2:
                 bboxes = mask_to_bboxes(final_mask, tess=True)
                 with open(os.path.join(out_dir, tess_box_name), "w") as f:
@@ -262,3 +266,22 @@ class FakeTextDataGenerator(object):
             if output_mask == 1:
                 return final_image.convert("RGB"), final_mask.convert("RGB")
             return final_image.convert("RGB")
+
+    @staticmethod
+    def _generate_name_from_background_img(background_img_path, curr_name):
+        basename = os.path.split(background_img_path)[-1]
+        basename_no_ext = os.path.splitext(basename)[0]
+        return f"{curr_name}_{basename_no_ext}"
+
+    @staticmethod
+    def write_boxes(out_dir, box_name, bboxes, invoke_ind):
+        with open(os.path.join(out_dir, box_name), "w") as csv_file:
+            writer = csv.writer(csv_file)
+            header = ['ind', 'x1', 'y1', 'x2', 'y2']
+            writer.writerow(header)
+            for bbox in bboxes:
+                if len(bbox) == 4:
+                    row_to_write = [invoke_ind, *bbox]
+                else:
+                    row_to_write = bbox
+                writer.writerow(row_to_write)

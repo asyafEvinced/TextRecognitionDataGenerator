@@ -21,6 +21,16 @@ def gaussian_noise(height, width):
     return Image.fromarray(image).convert("RGBA")
 
 
+def any_color(height, width):
+    """
+        Create a background with random color
+    """
+    random_r = rnd.randint(0, 255)
+    random_g = rnd.randint(0, 255)
+    random_b = rnd.randint(0, 255)
+    return Image.new("RGBA", (width, height), (random_r, random_g, random_b))
+
+
 def plain_white(height, width):
     """
         Create a plain white background
@@ -68,11 +78,10 @@ def image(height, width, image_dir, crop=False):
             filtered_images.append(img_filename)
 
     if len(filtered_images) > 0:
-        pic = Image.open(
-            os.path.join(
-                image_dir, filtered_images[rnd.randint(0, len(filtered_images) - 1)]
-            )
+        img_path = os.path.join(
+            image_dir, filtered_images[rnd.randint(0, len(filtered_images) - 1)]
         )
+        pic = Image.open(img_path)
 
         if pic.size[0] < width:
             pic = pic.resize(

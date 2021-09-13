@@ -2,6 +2,7 @@
 Utility functions
 """
 
+import csv
 import os
 import numpy as np
 from PIL import Image, ImageDraw
@@ -74,8 +75,21 @@ def mask_to_bboxes(mask, tess=False):
 
     return bboxes        
 
+
 def draw_bounding_boxes(img, bboxes, color="green"):
     d = ImageDraw.Draw(img)
 
     for bbox in bboxes:
+        if len(bbox) > 4:
+            bbox = bbox[1:5]
         d.rectangle(bbox, outline=color)
+
+
+def load_bounding_boxes(background_img_path):
+    background_img_no_ext = os.path.splitext(background_img_path)[0]
+    boxes_file = f'{background_img_no_ext}_boxes.csv'
+    with open(boxes_file, newline='') as csv_file:
+        reader = csv.reader(csv_file, delimiter=',')
+        next(reader)
+        data = [tuple(map(int, rec)) for rec in reader]
+        return data
