@@ -166,11 +166,9 @@ class FakeTextDataGenerator(object):
                 background_height, background_width
             )
         elif background_type == 3:
-            background_img = background_generator.image(
+            background_img, background_img_path = background_generator.image(
                 background_height, background_width, image_dir,
             )
-            if hasattr(background_img, 'filename'):
-                background_img_path = background_img.filename
         else:
             background_img = background_generator.any_color(
                 background_height, background_width
@@ -251,11 +249,12 @@ class FakeTextDataGenerator(object):
             final_image.convert("RGB").save(os.path.join(out_dir, image_name))
             if output_mask == 1:
                 final_mask.convert("RGB").save(os.path.join(out_dir, mask_name))
-            if output_bboxes == 1:
+            if output_bboxes == 1 or output_bboxes == 3:
                 bboxes = mask_to_bboxes(final_mask)
                 bboxes.extend(loaded_bboxes)
-                draw_bounding_boxes(final_image, bboxes)
-                final_image.convert("RGB").save(os.path.join(out_dir, image_box_name))
+                if output_bboxes == 3:
+                    draw_bounding_boxes(final_image, bboxes)
+                    final_image.convert("RGB").save(os.path.join(out_dir, image_box_name))
                 FakeTextDataGenerator.write_boxes(out_dir, box_name, bboxes, invoke_ind)
             if output_bboxes == 2:
                 bboxes = mask_to_bboxes(final_mask, tess=True)

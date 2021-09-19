@@ -5,7 +5,6 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import random as rnd
-import string
 import sys
 
 from tqdm import tqdm
@@ -198,7 +197,8 @@ def parse_arguments():
         "-obb",
         "--output_bboxes",
         type=int,
-        help="Define if the generator will return bounding boxes for the text, 1: Bounding box file, 2: Tesseract format",
+        help="Define if the generator will return bounding boxes for the text, 1: Bounding box file, 2: Tesseract format "
+             "3: Output box images and box file",
         default=0
     )
     parser.add_argument(

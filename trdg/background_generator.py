@@ -93,7 +93,7 @@ def image(height, width, image_dir, crop=False):
             )
 
         if not crop:
-            return pic
+            return pic, img_path
 
         if pic.size[0] == width:
             x = 0
@@ -104,6 +104,6 @@ def image(height, width, image_dir, crop=False):
         else:
             y = rnd.randint(0, pic.size[1] - height)
 
-        return pic.crop((x, y, x + width, y + height))
+        return pic.crop((x, y, x + width, y + height)), img_path
     else:
         raise Exception("No images where found in the images folder!")
