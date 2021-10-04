@@ -7,14 +7,14 @@ create_dir_if_not_exists() {
   fi
 }
 
-OVERLAP=0
+OVERLAP=1
 RESULT_DIR='res'
 create_dir_if_not_exists "$RESULT_DIR"
 OUT_DIR='out'
 TEMP_OUT_DIR='out_1'
-NUM_SAMPLES=10
+NUM_SAMPLES=3
 MAX_MARGIN=30
-for i in {1..10}
+for i in {1..3}
 do
   create_dir_if_not_exists "$OUT_DIR"
   create_dir_if_not_exists "$TEMP_OUT_DIR"
@@ -27,7 +27,7 @@ do
   MARGIN_RIGHT=$((0 + $RANDOM % MAX_MARGIN))
   MARGIN=$((0 + $RANDOM % MAX_MARGIN))
   python /Users/asya/Code/TextRecognitionDataGenerator/trdg/run.py -c $NUM_SAMPLES -w $NUM_WORDS_BACKGROUND \
-    -tc '#000000,#FFFFFF' -obb 1 -ws -b 4 -na 1 -wd $WIDTH -f $HEIGHT --output_dir $TEMP_OUT_DIR -e png \
+    -tc '#000000,#FFFFFF' -obb 3 -ws -b 4 -na 1 -wd $WIDTH -f $HEIGHT --output_dir $TEMP_OUT_DIR -e png \
     -m "$MARGIN_TOP,$MARGIN_LEFT,$MARGIN_BOTTOM,$MARGIN_RIGHT"
   if [[ $OVERLAP == 1 ]]; then
     python /Users/asya/Code/TextRecognitionDataGenerator/trdg/run.py -c $NUM_SAMPLES \

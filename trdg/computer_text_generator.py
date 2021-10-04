@@ -1,6 +1,7 @@
 import random as rnd
 
-from PIL import Image, ImageColor, ImageFont, ImageDraw, ImageFilter
+from PIL import Image, ImageColor, ImageFont, ImageDraw
+from utils import split_text_to_words
 
 
 def generate(
@@ -18,6 +19,8 @@ def generate(
         raise ValueError("Unknown orientation " + str(orientation))
 
 
+
+
 def _generate_horizontal_text(
     text, font, text_color, font_size, space_width, character_spacing, fit, word_split
 ):
@@ -26,11 +29,7 @@ def _generate_horizontal_text(
     space_width = int(image_font.getsize(" ")[0] * space_width)
 
     if word_split:
-        splitted_text = []
-        for w in text.split(' '):
-            splitted_text.append(w)
-            splitted_text.append(' ')
-        splitted_text.pop()
+        splitted_text = split_text_to_words(text)
     else:
         splitted_text = text
 

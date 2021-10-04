@@ -39,7 +39,17 @@ def load_fonts(lang):
             )
         ]
 
-def mask_to_bboxes(mask, tess=False):
+
+def split_text_to_words(text):
+    splitted_text = []
+    for w in text.split(' '):
+        splitted_text.append(w)
+        splitted_text.append(' ')
+    splitted_text.pop()
+    return splitted_text
+
+
+def mask_to_bboxes(mask, text, tess=False):
     """Process the mask and turns it into a list of AABB bounding boxes
     """
 
@@ -47,26 +57,21 @@ def mask_to_bboxes(mask, tess=False):
 
     bboxes = []
 
-    i = 0
-    space_thresh = 1
-    while True:
-        try:
-            color_tuple = ((i + 1) // (255 * 255), (i + 1) // 255, (i + 1) % 255)
-            letter = np.where(np.all(mask_arr == color_tuple, axis=-1))
-            bboxes.append((
-                max(0, np.min(letter[1]) - 1),
-                max(0, np.min(letter[0]) - 1) if not tess else max(0, mask_arr.shape[0] - np.max(letter[0]) - 1),
-                min(mask_arr.shape[1] - 1, np.max(letter[1]) + 1),
-                min(mask_arr.shape[0] - 1, np.max(letter[0]) + 1) if not tess else min(mask_arr.shape[0] - 1, mask_arr.shape[0] - np.min(letter[0]) + 1)
-            ))
-            i += 1
-        except Exception as ex:
-            if space_thresh == 0:
-                break
-            space_thresh -= 1
-            i += 1
+    splitted_text = split_text_to_words(text)
+    for i in range(len(splitted_text)):
+        color_tuple = ((i + 1) // (255 * 255), (i + 1) // 255, (i + 1) % 255)
+        letter = np.where(np.all(mask_arr == color_tuple, axis=-1))
+        if len(letter[0]) == 0 or len(letter[1]) == 0:
+            continue
+        x1 = max(0, np.min(letter[1]) - 1)
+        x2 = max(0, np.min(letter[0]) - 1) if not tess else max(0, mask_arr.shape[0] - np.max(letter[0]) - 1)
+        y1 = min(mask_arr.shape[1] - 1, np.max(letter[1]) + 1)
+        y2 = min(mask_arr.shape[0] - 1, np.max(letter[0]) + 1) if not tess else min(mask_arr.shape[0] - 1,
+                                                                                    mask_arr.shape[0] -
+                                                                                    np.min(letter[0]) + 1)
+        bboxes.append((x1, x2, y1, y2))
 
-    return bboxes        
+    return bboxes
 
 
 def draw_bounding_boxes(img, bboxes, color="green"):
