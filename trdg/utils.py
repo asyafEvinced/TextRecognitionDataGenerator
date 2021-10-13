@@ -1,11 +1,10 @@
-"""
-Utility functions
-"""
-
 import csv
 import os
 import numpy as np
-from PIL import Image, ImageDraw
+import pathlib
+from PIL import ImageDraw
+import shutil
+
 
 def load_dict(lang):
     """Read the dictionnary file and returns all words in it.
@@ -91,3 +90,31 @@ def load_bounding_boxes(background_img_path):
         next(reader)
         data = [tuple(map(int, rec)) for rec in reader]
         return data
+
+
+class Range(object):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+
+    def __eq__(self, other):
+        return self.start <= other <= self.end
+
+    def __contains__(self, item):
+        return self.__eq__(item)
+
+    def __iter__(self):
+        yield self
+
+    def __str__(self):
+        return '[{0},{1}]'.format(self.start, self.end)
+
+
+def create_dir_if_not_exists(dir_path):
+    pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
+
+
+def move_dir_files(source_dir, target_dir):
+    file_names = os.listdir(source_dir)
+    for file_name in file_names:
+        shutil.move(os.path.join(source_dir, file_name), target_dir)
