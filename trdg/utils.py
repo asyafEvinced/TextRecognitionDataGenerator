@@ -3,7 +3,10 @@ import os
 import numpy as np
 import pathlib
 from PIL import ImageDraw
+import shlex
 import shutil
+import subprocess
+import random
 
 
 def load_dict(lang):
@@ -118,3 +121,11 @@ def move_dir_files(source_dir, target_dir):
     file_names = os.listdir(source_dir)
     for file_name in file_names:
         shutil.move(os.path.join(source_dir, file_name), target_dir)
+
+
+def run_shell_command(command):
+    subprocess.run(shlex.split(command))
+
+
+def get_random_color():
+    return "#%06x" % random.randint(0, 0xFFFFFF)

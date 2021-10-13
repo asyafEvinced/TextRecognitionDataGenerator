@@ -1,11 +1,10 @@
 import argparse
 import math
 import random
-import shlex
 import shutil
-import subprocess
 
-from utils import create_dir_if_not_exists, Range, move_dir_files
+from utils import create_dir_if_not_exists, Range, move_dir_files, \
+    run_shell_command, get_random_color
 
 RESULT_DIR = 'res'
 OUT_DIR = 'out'
@@ -22,24 +21,26 @@ MAX_MARGIN = 20
 NUM_MARGINS = 4
 
 
-def run_shell_command(command):
-    subprocess.run(shlex.split(command))
-
-
-def generate_single_layer_text(num_samples, num_words_background, width, height, margin_list_first_run):
+def generate_single_layer_text(num_samples, num_words_background, width, height, margin_list_first_run,
+                               text_color):
     margin_list = ','.join([str(i) for i in margin_list_first_run])
     command = f"python /Users/asya/Code/TextRecognitionDataGenerator/trdg/run.py -c {num_samples} " \
-              f"-w {num_words_background} -tc '#000000,#FFFFFF' -obb 3 -ws -b 4 -na 1 -wd {width} -f " \
+              f"-w {num_words_background} -tc '{text_color}' -obb 3 -ws -b 4 -na 1 -wd {width} -f " \
               f"{height} --output_dir {TEMP_OUT_DIR} -e png " \
               f"-m '{margin_list}'"
     run_shell_command(command)
 
 
-def generate_second_layer_text(num_samples, width, height, margin_second_run):
+def generate_second_layer_text(num_samples, width, height, margin_second_run, text_color):
     margin_list = ','.join(([str(margin_second_run)] * NUM_MARGINS))
     command = f"python /Users/asya/Code/TextRecognitionDataGenerator/trdg/run.py -c {num_samples} " \
-              f"-tc '#000000,#FFFFFF' -obb 3 -ws -b 3 -id {TEMP_OUT_DIR} -na 1 -f {height} -e png -wd {width} " \
+              f"-obb 3 -ws -b 3 -id {TEMP_OUT_DIR} -na 1 -f {height} -e png -wd {width} " \
               f"-m '{margin_list}'"
+    keep_color = bool(random.getrandbits(1))
+    if keep_color:
+        command += f" -tc {text_color}"
+    else:
+        command += " -tc '#000000,#FFFFFF'"
     run_shell_command(command)
 
 
@@ -60,10 +61,12 @@ def generate_data(num_iterations, num_samples, create_overlap):
         width, height, num_words_background, margin_list_first_run, margin_second_run = \
             generate_random_values()
 
-        generate_single_layer_text(num_samples, num_words_background, width, height, margin_list_first_run)
+        text_color = get_random_color()
+        generate_single_layer_text(num_samples, num_words_background, width, height, margin_list_first_run,
+                                   text_color)
 
         if create_overlap:
-            generate_second_layer_text(num_samples, width, height, margin_second_run)
+            generate_second_layer_text(num_samples, width, height, margin_second_run, text_color)
             move_dir_files(OUT_DIR, RESULT_DIR)
         else:
             move_dir_files(TEMP_OUT_DIR, RESULT_DIR)
