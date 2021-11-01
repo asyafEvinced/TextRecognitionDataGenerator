@@ -4,7 +4,9 @@ import os
 import random as rnd
 import numpy as np
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image
+
+from trdg.utils import WHITE_COLOR, WHITE_COLOR_PROB
 
 
 def gaussian_noise(height, width):
@@ -29,6 +31,15 @@ def any_color(height, width):
     random_g = rnd.randint(0, 255)
     random_b = rnd.randint(0, 255)
     return Image.new("RGBA", (width, height), (random_r, random_g, random_b))
+
+
+def any_color_with_bias_to_white(height, width):
+    """
+        Create a background with random color or white color
+    """
+    funcs = rnd.choices([plain_white, any_color],
+                        cum_weights=[WHITE_COLOR_PROB, 1-WHITE_COLOR_PROB])
+    return funcs[0](height, width)
 
 
 def plain_white(height, width):

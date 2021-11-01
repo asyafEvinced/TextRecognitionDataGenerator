@@ -9,6 +9,12 @@ import subprocess
 import random
 
 
+BLACK_COLOR = 0x000000
+BLACK_COLOR_PROB = 0.3
+WHITE_COLOR = 0xFFFFFF
+WHITE_COLOR_PROB = 0.3
+
+
 def load_dict(lang):
     """Read the dictionnary file and returns all words in it.
     """
@@ -128,4 +134,10 @@ def run_shell_command(command):
 
 
 def get_random_color():
-    return "#%06x" % random.randint(0, 0xFFFFFF)
+    return "#%06x" % random.randint(BLACK_COLOR, WHITE_COLOR)
+
+
+def get_random_color_with_bias(bias_color, bias_color_weight):
+    random_color = random.randint(BLACK_COLOR, WHITE_COLOR)
+    return random.choices(["#%06x" % random_color, bias_color],
+                          cum_weights=[1 - bias_color_weight, bias_color_weight])[0]

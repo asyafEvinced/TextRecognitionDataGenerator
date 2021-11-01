@@ -1,10 +1,11 @@
 import argparse
+from enum import Enum, auto
 import math
 import random
 import shutil
 
-from utils import create_dir_if_not_exists, Range, move_dir_files, \
-    run_shell_command, get_random_color
+from trdg.utils import create_dir_if_not_exists, Range, move_dir_files, \
+    run_shell_command, get_random_color_with_bias, BLACK_COLOR, BLACK_COLOR_PROB
 
 RESULT_DIR = 'res'
 OUT_DIR = 'out'
@@ -19,6 +20,12 @@ MAX_NUM_WORDS_BACKGROUND = 5
 MIN_MARGIN = 0
 MAX_MARGIN = 20
 NUM_MARGINS = 4
+
+
+class OverlapType(Enum):
+    TEXT = auto()
+    RECTANGLE = auto()
+    NONE = auto()
 
 
 def generate_single_layer_text(num_samples, num_words_background, width, height, margin_list_first_run,
@@ -44,6 +51,12 @@ def generate_second_layer_text(num_samples, width, height, margin_second_run, te
     run_shell_command(command)
 
 
+def generate_rectangle(num_samples, width, height):
+    command = f"python /Users/asya/Code/TextRecognitionDataGenerator/trdg/run.py -c {num_samples} " \
+              f"-obb 3 -f {height} -wd {width} --rect  -b 3 -id {TEMP_OUT_DIR} -e png"
+    run_shell_command(command)
+
+
 def generate_random_values():
     width = random.randint(MIN_WIDTH, MAX_WIDTH)
     height = random.randint(MIN_HEIGHT, MAX_HEIGHT)
@@ -53,7 +66,7 @@ def generate_random_values():
     return width, height, num_words_background, margin_list_first_run, margin_second_run
 
 
-def generate_data(num_iterations, num_samples, create_overlap):
+def generate_data(num_iterations, num_samples, overlap_type):
     for i in range(num_iterations):
         create_dir_if_not_exists(OUT_DIR)
         create_dir_if_not_exists(TEMP_OUT_DIR)
@@ -61,12 +74,15 @@ def generate_data(num_iterations, num_samples, create_overlap):
         width, height, num_words_background, margin_list_first_run, margin_second_run = \
             generate_random_values()
 
-        text_color = get_random_color()
+        text_color = get_random_color_with_bias(BLACK_COLOR, BLACK_COLOR_PROB)
         generate_single_layer_text(num_samples, num_words_background, width, height, margin_list_first_run,
                                    text_color)
 
-        if create_overlap:
+        if overlap_type == OverlapType.TEXT:
             generate_second_layer_text(num_samples, width, height, margin_second_run, text_color)
+            move_dir_files(OUT_DIR, RESULT_DIR)
+        elif overlap_type == OverlapType.RECTANGLE:
+            generate_rectangle(num_samples, width, height)
             move_dir_files(OUT_DIR, RESULT_DIR)
         else:
             move_dir_files(TEMP_OUT_DIR, RESULT_DIR)
@@ -75,10 +91,14 @@ def generate_data(num_iterations, num_samples, create_overlap):
         shutil.rmtree(OUT_DIR)
 
 
-def generate_data_by_overlap_ratio(num_iterations, num_samples, overlap_ratio):
+def generate_data_by_overlap_ratios(num_iterations, num_samples, overlap_ratio,
+                                    rectangle_ratio):
     num_overlap_iterations = math.floor(num_iterations * overlap_ratio)
-    generate_data(num_overlap_iterations, num_samples, True)
-    generate_data(num_iterations - num_overlap_iterations, num_samples, False)
+    num_rectangle_iterations = math.ceil(num_overlap_iterations * rectangle_ratio)
+    num_text_overlap_iterations = num_overlap_iterations - num_rectangle_iterations
+    generate_data(num_text_overlap_iterations, num_samples, OverlapType.TEXT)
+    generate_data(num_rectangle_iterations, num_samples, OverlapType.RECTANGLE)
+    generate_data(num_iterations - num_overlap_iterations, num_samples, OverlapType.NONE)
 
 
 def parse_args():
@@ -88,13 +108,16 @@ def parse_args():
                         required=True)
     parser.add_argument('-o', '--overlap', type=float, help='Non overlapping fraction',
                         choices=Range(0.0, 1.0), required=True)
+    parser.add_argument('-r', '--rectangle', type=float, help='Fraction of overlapping '
+                                                              'rectangles out of all overlaps',
+                        choices=Range(0.0, 1.0), required=False, default=0.0)
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
     create_dir_if_not_exists(RESULT_DIR)
-    generate_data_by_overlap_ratio(args.iterations, args.samples, args.overlap)
+    generate_data_by_overlap_ratios(args.iterations, args.samples, args.overlap, args.rectangle)
 
 
 if __name__ == '__main__':

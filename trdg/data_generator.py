@@ -1,11 +1,12 @@
 import csv
+import math
 import os
 import random as rnd
 
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageDraw
 
 from trdg import computer_text_generator, background_generator, distorsion_generator
-from trdg.utils import mask_to_bboxes, draw_bounding_boxes, load_bounding_boxes
+from trdg.utils import mask_to_bboxes, draw_bounding_boxes, load_bounding_boxes, get_random_color
 
 try:
     from trdg import handwritten_text_generator
@@ -14,6 +15,9 @@ except ImportError as e:
 
 
 class FakeTextDataGenerator(object):
+
+    MIN_RECTANGLE_DIM = 20
+
     @classmethod
     def generate_from_tuple(cls, t):
         """
@@ -52,8 +56,8 @@ class FakeTextDataGenerator(object):
         word_split,
         image_dir,
         output_bboxes,
+        rect
     ):
-        image = None
 
         margin_top, margin_left, margin_bottom, margin_right = margins
         horizontal_margin = margin_left + margin_right
@@ -170,42 +174,49 @@ class FakeTextDataGenerator(object):
                 background_height, background_width, image_dir,
             )
         else:
-            background_img = background_generator.any_color(
+            background_img = background_generator.any_color_with_bias_to_white(
                 background_height, background_width
             )
         background_mask = Image.new(
             "RGB", (background_width, background_height), (0, 0, 0)
         )
 
-        #############################
-        # Place text with alignment #
-        #############################
-
-        new_text_width, _ = resized_img.size
-
-        if alignment == 0:  # or width == -1:
-            background_img.paste(resized_img, (margin_left, margin_top), resized_img)
-            background_mask.paste(resized_mask, (margin_left, margin_top))
-        elif alignment == 1:
-            background_img.paste(
-                resized_img,
-                (int(background_width / 2 - new_text_width / 2), margin_top),
-                resized_img,
-            )
-            background_mask.paste(
-                resized_mask,
-                (int(background_width / 2 - new_text_width / 2), margin_top),
-            )
+        ##################################
+        # Draw rectangle #
+        ##################################
+        if rect:
+            rect_coords = FakeTextDataGenerator.draw_rectangle(background_img)
         else:
-            background_img.paste(
-                resized_img,
-                (background_width - new_text_width - margin_right, margin_top),
-                resized_img,
-            )
-            background_mask.paste(
-                resized_mask,
-                (background_width - new_text_width - margin_right, margin_top),
-            )
+            rect_coords = None
+            #############################
+            # Place text with alignment #
+            #############################
+
+            new_text_width, _ = resized_img.size
+
+            if alignment == 0:  # or width == -1:
+                background_img.paste(resized_img, (margin_left, margin_top), resized_img)
+                background_mask.paste(resized_mask, (margin_left, margin_top))
+            elif alignment == 1:
+                background_img.paste(
+                    resized_img,
+                    (int(background_width / 2 - new_text_width / 2), margin_top),
+                    resized_img,
+                )
+                background_mask.paste(
+                    resized_mask,
+                    (int(background_width / 2 - new_text_width / 2), margin_top),
+                )
+            else:
+                background_img.paste(
+                    resized_img,
+                    (background_width - new_text_width - margin_right, margin_top),
+                    resized_img,
+                )
+                background_mask.paste(
+                    resized_mask,
+                    (background_width - new_text_width - margin_right, margin_top),
+                )
 
         ##################################
         # Apply gaussian blur #
@@ -253,7 +264,10 @@ class FakeTextDataGenerator(object):
             if output_mask == 1:
                 final_mask.convert("RGB").save(mask_out_path)
             if output_bboxes == 1 or output_bboxes == 3:
-                bboxes = mask_to_bboxes(final_mask, text)
+                if rect_coords is not None:
+                    bboxes = [rect_coords]
+                else:
+                    bboxes = mask_to_bboxes(final_mask, text)
                 bboxes.extend(loaded_bboxes)
                 if output_bboxes == 3:
                     draw_bounding_boxes(final_image, bboxes)
@@ -287,3 +301,16 @@ class FakeTextDataGenerator(object):
                 else:
                     row_to_write = bbox
                 writer.writerow(row_to_write)
+
+    @staticmethod
+    def draw_rectangle(background_img):
+        draw = ImageDraw.Draw(background_img)
+        width, height = background_img.size
+        rect_width = rnd.randint(FakeTextDataGenerator.MIN_RECTANGLE_DIM, math.floor(width / 2))
+        rect_height = rnd.randint(FakeTextDataGenerator.MIN_RECTANGLE_DIM, math.floor(height / 2))
+        p1_x = rnd.randint(0, width - rect_width - 1)
+        p1_y = rnd.randint(0, height - rect_height - 1)
+        p2_x = p1_x + rect_width
+        p2_y = p2_x + rect_height
+        draw.rectangle([(p1_x, p1_y), (p2_x, p2_y)], fill=get_random_color())
+        return p1_x, p1_y, p2_x, p2_y

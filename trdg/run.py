@@ -314,6 +314,12 @@ def parse_arguments():
         help="Split on words instead of on characters (preserves ligatures, no character spacing)",
         default=False,
     )
+    parser.add_argument(
+        "--rect",
+        action="store_true",
+        help="Add rectangles on top of text",
+        default=False,
+    )
     return parser.parse_args()
 
 
@@ -426,6 +432,7 @@ def main():
                 [args.word_split] * string_count,
                 [args.image_dir] * string_count,
                 [args.output_bboxes] * string_count,
+                [args.rect] * string_count
             ),
         ),
         total=args.count,
